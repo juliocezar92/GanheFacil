@@ -1,0 +1,17 @@
+﻿@model List<int>
+
+@{
+    ViewBag.Title = "Números Gerados";
+}
+
+<h2>Números Gerados</h2>
+
+<p>Aqui estão os números gerados:</p>
+
+<ul>
+    @foreach (var numero in Model)
+    {
+        <li>@numero</li>
+    }
+</ul>
+
