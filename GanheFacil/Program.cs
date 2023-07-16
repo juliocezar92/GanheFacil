@@ -9,7 +9,7 @@ builder.Services.AddDbContext<GanheFacilContext>(options =>
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-builder.Services.AddScoped<GanheFacilService>();
+builder.Services.AddScoped<IGanheFacilService,GanheFacilService>();
 builder.Services.AddDbContext<GanheFacilContext>();
 
 

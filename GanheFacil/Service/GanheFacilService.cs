@@ -1,6 +1,8 @@
 ﻿using GanheFacil.Data;
 using GanheFacil.Models;
-using System.Globalization;
+using Newtonsoft.Json;
+
+
 
 namespace GanheFacil.Service
 {
@@ -11,49 +13,57 @@ namespace GanheFacil.Service
 
     public class GanheFacilService : IGanheFacilService
     {
+
+
         private readonly GanheFacilContext _context;
 
         public GanheFacilService(GanheFacilContext context)
         {
             _context = context;
         }
-
         public async Task<bool> ColetarERegistrarResultados()
         {
             try
             {
                 using (var httpClient = new HttpClient())
                 {
-                    // Faz a requisição HTTP para obter o HTML da página de resultados
-                    var html = await httpClient.GetStringAsync("https://servicebus2.caixa.gov.br/portaldeloterias/api/lotofacil/2812");
+                    // Fazer a solicitação HTTP para obter o JSON com os resultados
+                    var response = await httpClient.GetAsync("https://servicebus2.caixa.gov.br/portaldeloterias/api/lotofacil/");
 
-                    // Analisa o HTML utilizando o HtmlAgilityPack
-                    var htmlDocument = new HtmlAgilityPack.HtmlDocument();
-                    htmlDocument.LoadHtml(html);
-
-                    // Extrai as informações relevantes do HTML, como data do sorteio e números sorteados
-                    var dataSorteioNode = htmlDocument.DocumentNode.SelectSingleNode("//div[@class='title-bar']//strong");
-                    var numerosSorteadosNodes = htmlDocument.DocumentNode.SelectNodes("//ul[@class='numbers']//li");
-
-                    var resultado = new Resultado
+                    if (response.IsSuccessStatusCode)
                     {
-                        DataSorteio = DateTime.ParseExact(dataSorteioNode.InnerText.Trim(), "dd/MM/yyyy", CultureInfo.InvariantCulture),
-                        NumerosSorteados = numerosSorteadosNodes.Select(n => int.Parse(n.InnerText)).ToList(),
-                        ValorPremio = 0.0m // Defina o valor do prêmio conforme necessário
-                    };
+                        // Ler a resposta como uma string
+                        var responseBody = await response.Content.ReadAsStringAsync();
 
-                    await _context.Resultados.AddAsync(resultado);
-                    await _context.SaveChangesAsync();
+                        // Converter o JSON para um objeto Resultado usando a classe Resultado do seu modelo
+                        var resultado = JsonConvert.DeserializeObject<Rootobject>(responseBody);
+                        var listaNumerosSorteados = string.Join(',',resultado.listaDezenas).Select(x => new NumeroSorteado(Convert.ToInt32(x))).ToList();
+                        var sorteio = new Sorteio(resultado.numero, Convert.ToDateTime(resultado.dataApuracao), string.Join(',', resultado.listaDezenas), resultado.tipoJogo, listaNumerosSorteados);
 
-                    return true;
+                        // Salvar o resultado no banco de dados
+                        await _context.Sorteios.AddAsync(sorteio);
+                        await _context.SaveChangesAsync();
+
+                        return true;
+                    }
+                    else
+                    {
+                        // Lidar com o erro da solicitação HTTP
+                        return false;
+                    }
                 }
             }
-            catch (Exception )
+            catch (Exception)
             {
                 // Tratar erros ou exceções
                 return false;
             }
         }
-        
+    }
+
+        public class ResultadoApi
+    {
+        public string Data { get; set; }
+        public List<int> Numeros { get; set; }
     }
 }

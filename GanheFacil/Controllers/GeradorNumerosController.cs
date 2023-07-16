@@ -1,6 +1,6 @@
 ﻿using GanheFacil.Data;
 using Microsoft.AspNetCore.Mvc;
-
+using Microsoft.EntityFrameworkCore;
 
 namespace GanheFacil.Controllers
 {
@@ -45,18 +45,22 @@ namespace GanheFacil.Controllers
         private List<int> ObterNumerosMaisFrequentes(int quantidade)
         {
             var resultados = _context.Resultados.ToList();
-
-            // Realiza as operações LINQ na memória
-            var numerosMaisFrequentes = resultados
-                .SelectMany(r => r.NumerosSorteados)
-                .GroupBy(n => n)
-                .OrderByDescending(g => g.Count())
-                .Select(g => g.Key)
+            var numerosMaisFrequentes = _context.Sorteios
+                .FromSqlInterpolated($@"
+            SELECT Id, DataSorteio, NumerosSorteados,Numero, TipoJogo, COUNT(*) AS Quantidade
+            FROM dbo.Sorteios
+            CROSS APPLY STRING_SPLIT(NumerosSorteados, ',')
+            GROUP BY Id, DataSorteio, NumerosSorteados, numero, TipoJogo")
+                .AsEnumerable()
+                .Select(s => s.NumerosSorteados.Split(','))
+                .SelectMany(arr => arr)
+                .Select(s => int.Parse(s.Trim()))
                 .Take(quantidade)
                 .ToList();
 
             return numerosMaisFrequentes;
         }
+
 
         private List<int> GerarNumerosAleatorios(List<int> numerosPossiveis, int quantidade)
         {

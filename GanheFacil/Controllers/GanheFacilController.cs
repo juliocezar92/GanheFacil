@@ -5,17 +5,18 @@ using Microsoft.AspNetCore.Mvc;
 [ApiController]
 public class GanheFacilController : ControllerBase
 {
-    private readonly GanheFacilService _ganhefacilService;
+    private readonly IGanheFacilService _ganheFacilService;
 
-    public GanheFacilController(GanheFacilService ganhefacilService)
+    public GanheFacilController(IGanheFacilService ganheFacilService)
     {
-        _ganhefacilService = ganhefacilService;
+        _ganheFacilService = ganheFacilService;
     }
 
-    [HttpPost("coletar-resultados")]
+
+    [HttpGet("coletar-resultados")]
     public async Task<IActionResult> ColetarERegistrarResultados()
     {
-        bool resultado = await _ganhefacilService.ColetarERegistrarResultados();
+        bool resultado = await _ganheFacilService.ColetarERegistrarResultados();
 
         if (resultado)
         {
@@ -26,6 +27,7 @@ public class GanheFacilController : ControllerBase
             return StatusCode(500, "Ocorreu um erro ao coletar e registrar os resultados.");
         }
     }
+
 }
 
 
